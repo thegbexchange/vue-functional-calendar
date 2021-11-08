@@ -53,6 +53,25 @@ export default class helpCalendar {
     return new Date(date[year], date[month] - 1, date[day])
   }
 
+  getDayFromName(dayName) {
+    switch (dayName) {
+      case 'Mon':
+        return 1;
+      case 'Tue':
+        return 2;
+      case 'Wed':
+        return 3;
+      case 'Thu':
+        return 4;
+      case 'Fri':
+        return 5;
+      case 'Sat':
+        return 6;
+      case 'Sun':
+        return 7;
+    }
+  }
+
   checkValidDate(val) {
     val = this.getDateFromFormat(val)
 

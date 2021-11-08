@@ -226,6 +226,7 @@ import PickerInputs from '../components/PickerInputs'
 import Footer from '../components/Footer'
 
 import { hElContains, hUniqueID } from '../utils/helpers'
+import moment from "moment";
 // import calendarMethods from '../utils/calendarMethods'
 
 export default {
@@ -750,6 +751,25 @@ export default {
         }
 
         this.$emit('input', this.calendar)
+      } // Weekly Date Range
+      else if (this.fConfigs.isDateRange && this.fConfigs.isWeekRange) {
+
+        let clickDate = moment(item.date.split(' ')[0], 'D/M/YYYY');
+
+        let weekStartDay = this.helpCalendar.getDayFromName(this.fConfigs.weekStart), weekEndDay = this.helpCalendar.getDayFromName(this.fConfigs.weekStart);
+
+        let weekStartDate = clickDate.isoWeekday() === weekStartDay ? clickDate.clone() : clickDate.isoWeekday() < weekStartDay ? clickDate.clone().isoWeekday(weekStartDay - 6) : clickDate.clone().isoWeekday(weekStartDay);
+        let weekEndDate = clickDate.isoWeekday() === weekEndDay ? clickDate.clone() : clickDate.isoWeekday() > weekEndDay ? clickDate.clone().isoWeekday(6 + weekEndDay) : clickDate.clone().isoWeekday(weekEndDay);
+
+        this.calendar.dateRange.start = weekStartDate.format('D/M/YYYY');
+        this.calendar.dateRange.end = weekEndDate.format('D/M/YYYY');
+
+        this.$emit('selectedDateRange', this.calendar);
+
+        this.$emit('selectedDaysCount', weekStartDate.diff(weekEndDate, 'days'));
+
+        this.$emit('input', this.calendar)
+
       } // Date Range
       else if (this.fConfigs.isDateRange) {
         let clickDate = this.helpCalendar
@@ -1032,9 +1052,190 @@ export default {
         }
       }
 
-      //Multiple Range
+      // Week Range
+      if (this.fConfigs.isWeekRange) {
 
-      if (
+        console.log(this.fConfigs.isWeekRange);
+        console.log(this.fConfigs.weekStart);
+        console.log(this.fConfigs.weekEnd);
+
+        for (let e = 0; e < this.listCalendars.length; e++) {
+          let calendar = this.listCalendars[e]
+
+          for (let f = 0; f < calendar.weeks.length; f++) {
+            let week = calendar.weeks[f]
+
+            for (let i = 0; i < week.days.length; i++) {
+              let item = week.days[i]
+
+              // Un-hover all dates
+              this.listCalendars[e].weeks[f].days[i].isHovered = false
+              /* Why check?
+              if ( // Check if is supposed to be marked
+                  item.date !== this.startDMY &&
+                  !this.fConfigs.markedDates.includes(item.date)
+              ) {
+                this.listCalendars[e].weeks[f].days[i].isMarked = false
+              }
+              */
+
+              // Use moment to get week days before / after current date
+              let iteratorDate = moment(item.date, 'D/M/YYYY'), hoverDate = moment(date, 'D/M/YYYY'), weekStartDay = this.helpCalendar.getDayFromName(this.fConfigs.weekStart), weekEndDay = this.helpCalendar.getDayFromName(this.fConfigs.weekStart);
+
+              let weekStartDate = hoverDate.isoWeekday() === weekStartDay ? hoverDate.clone() : hoverDate.isoWeekday() < weekStartDay ? hoverDate.clone().isoWeekday(weekStartDay - 6) : hoverDate.clone().isoWeekday(weekStartDay);
+              let weekEndDate = hoverDate.isoWeekday() === weekEndDay ? hoverDate.clone() : hoverDate.isoWeekday() > weekEndDay ? hoverDate.clone().isoWeekday(6 + weekEndDay) : hoverDate.clone().isoWeekday(weekEndDay);
+
+              //console.log('Week Start: ' + weekStartDate.format());
+              //console.log('Hover: ' + hoverDate.format());
+              //console.log('Week End: ' + weekEndDate.format());
+
+              // If iterator is in period, then hover
+              if (iteratorDate.isSameOrAfter(weekStartDate) && iteratorDate.isSameOrBefore(weekEndDate)) {
+
+                // this.listCalendars[e].weeks[f].days[i].isMarked = false
+                this.listCalendars[e].weeks[f].days[i].isHovered = true
+
+              }
+
+              /*
+              // If a Date Range Start is specified
+              if (this.calendar.dateRange.start) {
+
+                // itemDate - current date in iteration
+                let itemDate = this.helpCalendar
+                    .getDateFromFormat(item.date)
+                    .getTime()
+
+                // thisDate - hovered date
+                let thisDate = this.helpCalendar
+                    .getDateFromFormat(date)
+                    .getTime()
+
+                // startDate - dateRange start date
+                let startDate = this.helpCalendar.getDateFromFormat(
+                    this.calendar.dateRange.start
+                )
+
+                // Get mouse location for itemDate
+                this.listCalendars[e].weeks[f].days[i].isMouseToLeft =
+                    (itemDate === startDate.getTime() &&
+                        thisDate > startDate.getTime()) ||
+                    (itemDate === thisDate && thisDate < startDate.getTime())
+                this.listCalendars[e].weeks[f].days[i].isMouseToRight =
+                    (itemDate === startDate.getTime() &&
+                        thisDate < startDate.getTime()) ||
+                    (itemDate === thisDate && thisDate > startDate.getTime())
+
+                // Get itemDate day of week
+                let dateDay =
+                    this.helpCalendar.getDateFromFormat(item.date).getDay() - 1
+                if (dateDay === -1) {
+                  dateDay = 6
+                }
+
+                // Check if disabled, then mark if more than range start date but less than hover, or less than start date but more than hover
+                let dayOfWeekString = this.fConfigs.dayNames[dateDay]
+                if (
+                    !this.fConfigs.disabledDayNames.includes(dayOfWeekString) &&
+                    ((itemDate > startDate.getTime() && itemDate < thisDate) ||
+                        (itemDate < startDate.getTime() && itemDate > thisDate))
+                ) {
+                  this.listCalendars[e].weeks[f].days[i].isMarked = true
+                }
+
+                // Un-hover if no dateRange end date and current date is hover date
+                if (!this.calendar.dateRange.end && itemDate === thisDate) {
+                  this.listCalendars[e].weeks[f].days[i].isHovered = false
+                }
+
+                // Check if range is above minimum selectable days
+                if (
+                    this.checkSelDates(
+                        'min',
+                        this.calendar.dateRange.start,
+                        item.date,
+                        date
+                    )
+                ) {
+                  this.listCalendars[e].weeks[f].days[i].isMarked = true
+
+                  let minDateToRight, minDateToLeft
+                  minDateToLeft = new Date(startDate.getTime())
+                  minDateToRight = new Date(startDate.getTime())
+                  minDateToLeft.setDate(
+                      minDateToLeft.getDate() - this.fConfigs.minSelDays + 1
+                  )
+                  minDateToRight.setDate(
+                      minDateToRight.getDate() + this.fConfigs.minSelDays - 1
+                  )
+
+                  if (
+                      thisDate >= minDateToLeft.getTime() &&
+                      this.helpCalendar.formatDate(minDateToLeft) === item.date
+                  ) {
+                    this.listCalendars[e].weeks[f].days[i].isMarked = false
+                    this.listCalendars[e].weeks[f].days[i].isMouseToLeft = true
+                    this.listCalendars[e].weeks[f].days[i].isHovered = true
+                  } else if (
+                      thisDate <= minDateToRight.getTime() &&
+                      this.helpCalendar.formatDate(minDateToRight) === item.date
+                  ) {
+                    this.listCalendars[e].weeks[f].days[i].isMarked = false
+                    this.listCalendars[e].weeks[f].days[i].isMouseToRight = true
+                    this.listCalendars[e].weeks[f].days[i].isHovered = true
+                  }
+                }
+
+                // Check if range is below maximum selectable days
+                if (
+                    this.checkSelDates(
+                        'max',
+                        this.calendar.dateRange.start,
+                        item.date,
+                        date
+                    )
+                ) {
+                  this.listCalendars[e].weeks[f].days[i].isMarked = false
+                  this.listCalendars[e].weeks[f].days[i].isHovered = false
+                  this.listCalendars[e].weeks[f].days[i].isMouseToLeft = false
+                  this.listCalendars[e].weeks[f].days[i].isMouseToRight = false
+
+                  let maxDateToLeft, maxDateToRight
+                  maxDateToLeft = new Date(startDate.getTime())
+                  maxDateToRight = new Date(startDate.getTime())
+                  maxDateToLeft.setDate(
+                      maxDateToLeft.getDate() - this.fConfigs.maxSelDays + 1
+                  )
+                  maxDateToRight.setDate(
+                      maxDateToRight.getDate() + this.fConfigs.maxSelDays - 1
+                  )
+
+                  if (thisDate <= maxDateToLeft.getTime()) {
+                    if (
+                        this.helpCalendar.formatDate(maxDateToLeft) === item.date
+                    ) {
+                      this.listCalendars[e].weeks[f].days[i].isHovered = true
+                      this.listCalendars[e].weeks[f].days[i].isMouseToLeft = true
+                    }
+                  }
+
+                  if (thisDate >= maxDateToRight.getTime()) {
+                    if (
+                        this.helpCalendar.formatDate(maxDateToRight) === item.date
+                    ) {
+                      this.listCalendars[e].weeks[f].days[i].isHovered = true
+                      this.listCalendars[e].weeks[f].days[i].isMouseToRight = true
+                    }
+                  }
+                }
+              }
+
+               */
+            }
+          }
+        }
+
+      } else if ( //Multiple Range
         (this.calendar.dateRange.start === '' ||
           this.calendar.dateRange.end === '') &&
         (this.calendar.dateRange.start !== '' ||
@@ -1049,61 +1250,73 @@ export default {
             for (let i = 0; i < week.days.length; i++) {
               let item = week.days[i]
 
+              // Un-hover all dates
               this.listCalendars[e].weeks[f].days[i].isHovered = false
-              if (
-                item.date !== this.startDMY &&
-                !this.fConfigs.markedDates.includes(item.date)
+              if ( // Check if is supposed to be marked
+                  item.date !== this.startDMY &&
+                  !this.fConfigs.markedDates.includes(item.date)
               ) {
                 this.listCalendars[e].weeks[f].days[i].isMarked = false
               }
 
+              // If a Date Range Start is specified
               if (this.calendar.dateRange.start) {
-                let itemDate = this.helpCalendar
-                  .getDateFromFormat(item.date)
-                  .getTime()
 
+                // itemDate - current date in iteration
+                let itemDate = this.helpCalendar
+                    .getDateFromFormat(item.date)
+                    .getTime()
+
+                // thisDate - hovered date
                 let thisDate = this.helpCalendar
-                  .getDateFromFormat(date)
-                  .getTime()
+                    .getDateFromFormat(date)
+                    .getTime()
+
+                // startDate - dateRange start date
                 let startDate = this.helpCalendar.getDateFromFormat(
-                  this.calendar.dateRange.start
+                    this.calendar.dateRange.start
                 )
 
+                // Get mouse location for itemDate
                 this.listCalendars[e].weeks[f].days[i].isMouseToLeft =
-                  (itemDate === startDate.getTime() &&
-                    thisDate > startDate.getTime()) ||
-                  (itemDate === thisDate && thisDate < startDate.getTime())
+                    (itemDate === startDate.getTime() &&
+                        thisDate > startDate.getTime()) ||
+                    (itemDate === thisDate && thisDate < startDate.getTime())
                 this.listCalendars[e].weeks[f].days[i].isMouseToRight =
-                  (itemDate === startDate.getTime() &&
-                    thisDate < startDate.getTime()) ||
-                  (itemDate === thisDate && thisDate > startDate.getTime())
+                    (itemDate === startDate.getTime() &&
+                        thisDate < startDate.getTime()) ||
+                    (itemDate === thisDate && thisDate > startDate.getTime())
 
+                // Get itemDate day of week
                 let dateDay =
-                  this.helpCalendar.getDateFromFormat(item.date).getDay() - 1
+                    this.helpCalendar.getDateFromFormat(item.date).getDay() - 1
                 if (dateDay === -1) {
                   dateDay = 6
                 }
 
+                // Check if disabled, then mark if more than range start date but less than hover, or less than start date but more than hover
                 let dayOfWeekString = this.fConfigs.dayNames[dateDay]
                 if (
-                  !this.fConfigs.disabledDayNames.includes(dayOfWeekString) &&
-                  ((itemDate > startDate.getTime() && itemDate < thisDate) ||
-                    (itemDate < startDate.getTime() && itemDate > thisDate))
+                    !this.fConfigs.disabledDayNames.includes(dayOfWeekString) &&
+                    ((itemDate > startDate.getTime() && itemDate < thisDate) ||
+                        (itemDate < startDate.getTime() && itemDate > thisDate))
                 ) {
                   this.listCalendars[e].weeks[f].days[i].isMarked = true
                 }
 
+                // Un-hover if no dateRange end date and current date is hover date
                 if (!this.calendar.dateRange.end && itemDate === thisDate) {
                   this.listCalendars[e].weeks[f].days[i].isHovered = false
                 }
 
+                // Check if range is above minimum selectable days
                 if (
-                  this.checkSelDates(
-                    'min',
-                    this.calendar.dateRange.start,
-                    item.date,
-                    date
-                  )
+                    this.checkSelDates(
+                        'min',
+                        this.calendar.dateRange.start,
+                        item.date,
+                        date
+                    )
                 ) {
                   this.listCalendars[e].weeks[f].days[i].isMarked = true
 
@@ -1111,22 +1324,22 @@ export default {
                   minDateToLeft = new Date(startDate.getTime())
                   minDateToRight = new Date(startDate.getTime())
                   minDateToLeft.setDate(
-                    minDateToLeft.getDate() - this.fConfigs.minSelDays + 1
+                      minDateToLeft.getDate() - this.fConfigs.minSelDays + 1
                   )
                   minDateToRight.setDate(
-                    minDateToRight.getDate() + this.fConfigs.minSelDays - 1
+                      minDateToRight.getDate() + this.fConfigs.minSelDays - 1
                   )
 
                   if (
-                    thisDate >= minDateToLeft.getTime() &&
-                    this.helpCalendar.formatDate(minDateToLeft) === item.date
+                      thisDate >= minDateToLeft.getTime() &&
+                      this.helpCalendar.formatDate(minDateToLeft) === item.date
                   ) {
                     this.listCalendars[e].weeks[f].days[i].isMarked = false
                     this.listCalendars[e].weeks[f].days[i].isMouseToLeft = true
                     this.listCalendars[e].weeks[f].days[i].isHovered = true
                   } else if (
-                    thisDate <= minDateToRight.getTime() &&
-                    this.helpCalendar.formatDate(minDateToRight) === item.date
+                      thisDate <= minDateToRight.getTime() &&
+                      this.helpCalendar.formatDate(minDateToRight) === item.date
                   ) {
                     this.listCalendars[e].weeks[f].days[i].isMarked = false
                     this.listCalendars[e].weeks[f].days[i].isMouseToRight = true
@@ -1134,13 +1347,14 @@ export default {
                   }
                 }
 
+                // Check if range is below maximum selectable days
                 if (
-                  this.checkSelDates(
-                    'max',
-                    this.calendar.dateRange.start,
-                    item.date,
-                    date
-                  )
+                    this.checkSelDates(
+                        'max',
+                        this.calendar.dateRange.start,
+                        item.date,
+                        date
+                    )
                 ) {
                   this.listCalendars[e].weeks[f].days[i].isMarked = false
                   this.listCalendars[e].weeks[f].days[i].isHovered = false
@@ -1151,31 +1365,27 @@ export default {
                   maxDateToLeft = new Date(startDate.getTime())
                   maxDateToRight = new Date(startDate.getTime())
                   maxDateToLeft.setDate(
-                    maxDateToLeft.getDate() - this.fConfigs.maxSelDays + 1
+                      maxDateToLeft.getDate() - this.fConfigs.maxSelDays + 1
                   )
                   maxDateToRight.setDate(
-                    maxDateToRight.getDate() + this.fConfigs.maxSelDays - 1
+                      maxDateToRight.getDate() + this.fConfigs.maxSelDays - 1
                   )
 
                   if (thisDate <= maxDateToLeft.getTime()) {
                     if (
-                      this.helpCalendar.formatDate(maxDateToLeft) === item.date
+                        this.helpCalendar.formatDate(maxDateToLeft) === item.date
                     ) {
                       this.listCalendars[e].weeks[f].days[i].isHovered = true
-                      this.listCalendars[e].weeks[f].days[
-                        i
-                      ].isMouseToLeft = true
+                      this.listCalendars[e].weeks[f].days[i].isMouseToLeft = true
                     }
                   }
 
                   if (thisDate >= maxDateToRight.getTime()) {
                     if (
-                      this.helpCalendar.formatDate(maxDateToRight) === item.date
+                        this.helpCalendar.formatDate(maxDateToRight) === item.date
                     ) {
                       this.listCalendars[e].weeks[f].days[i].isHovered = true
-                      this.listCalendars[e].weeks[f].days[
-                        i
-                      ].isMouseToRight = true
+                      this.listCalendars[e].weeks[f].days[i].isMouseToRight = true
                     }
                   }
                 }

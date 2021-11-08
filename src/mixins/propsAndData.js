@@ -169,7 +169,19 @@ export const propsAndData = {
     alwaysUseDefaultClasses: {
       type: Boolean,
       default: false
-    }
+    },
+    weekStart: {
+      type: String,
+      default: undefined
+    },
+    weekEnd: {
+      type: String,
+      default: undefined
+    },
+    isWeekRange: {
+      type: Boolean,
+      default: undefinedGenerator
+    },
   },
   data() {
     return {
@@ -277,7 +289,11 @@ export const propsAndData = {
         isLayoutExpandable: false,
 
         titlePosition: 'center',
-        arrowsPosition: 'space-between'
+        arrowsPosition: 'space-between',
+
+        isWeekRange: false,
+        weekStart: 'Mon',
+        weekEnd: 'Sun'
       }
     }
   }

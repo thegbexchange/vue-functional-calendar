@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "core-js": "^2.6.5",
+    "moment": "^2.29.1",
     "vue": "^2.5.21"
   },
   "devDependencies": {
