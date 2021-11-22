@@ -531,6 +531,42 @@ export default {
         dayNames.unshift(sundayName)
         this.fConfigs.dayNames = dayNames
       }
+
+      // Check for initial days
+      if (this.fConfigs.presetStartDate && this.fConfigs.presetEndDate && this.fConfigs.isWeekRange) {
+
+        let startDate = moment(this.fConfigs.presetStartDate, 'D-M-YYYY');
+        let endDate = moment(this.fConfigs.presetEndDate, 'D-M-YYYY');
+
+        let workingDate = null;
+
+        if (this.fConfigs.enabledDates.includes(startDate.format('D/M/YYYY'))) {
+          workingDate = startDate;
+        } else if (this.fConfigs.enabledDates.includes(endDate.format('D/M/YYYY'))) {
+          workingDate = endDate;
+        }
+
+        if (workingDate !== null) {
+
+          let weekStartDay = this.helpCalendar.getDayFromName(this.fConfigs.weekStart), weekEndDay = this.helpCalendar.getDayFromName(this.fConfigs.weekStart);
+
+          let weekStartDate = workingDate.isoWeekday() === weekStartDay ? workingDate.clone() : workingDate.isoWeekday() < weekStartDay ? workingDate.clone().isoWeekday(weekStartDay - 6) : workingDate.clone().isoWeekday(weekStartDay);
+          let weekEndDate = workingDate.isoWeekday() === weekEndDay ? workingDate.clone() : workingDate.isoWeekday() > weekEndDay ? workingDate.clone().isoWeekday(6 + weekEndDay) : workingDate.clone().isoWeekday(weekEndDay);
+
+          this.calendar.dateRange.start = weekStartDate.format('D/M/YYYY');
+          this.calendar.dateRange.end = weekEndDate.format('D/M/YYYY');
+
+          this.$emit('selectedDateRange', this.calendar);
+
+          this.$emit('selectedDaysCount', weekStartDate.diff(weekEndDate, 'days'));
+
+          this.$emit('input', this.calendar);
+
+        }
+
+      }
+
+
     },
     listRendering() {
       // Each Calendars
@@ -768,7 +804,12 @@ export default {
 
         this.$emit('selectedDaysCount', weekStartDate.diff(weekEndDate, 'days'));
 
-        this.$emit('input', this.calendar)
+        this.$emit('input', this.calendar);
+
+        // Is Auto Closeable
+        if (this.fConfigs.isModal && this.fConfigs.isAutoCloseable) {
+          this.showCalendar = false;
+        }
 
       } // Date Range
       else if (this.fConfigs.isDateRange) {
@@ -1055,9 +1096,9 @@ export default {
       // Week Range
       if (this.fConfigs.isWeekRange) {
 
-        console.log(this.fConfigs.isWeekRange);
-        console.log(this.fConfigs.weekStart);
-        console.log(this.fConfigs.weekEnd);
+        //console.log(this.fConfigs.isWeekRange);
+        //console.log(this.fConfigs.weekStart);
+        //console.log(this.fConfigs.weekEnd);
 
         for (let e = 0; e < this.listCalendars.length; e++) {
           let calendar = this.listCalendars[e]

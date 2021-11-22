@@ -293,7 +293,10 @@ export const propsAndData = {
 
         isWeekRange: false,
         weekStart: 'Mon',
-        weekEnd: 'Sun'
+        weekEnd: 'Sun',
+
+        presetStartDate: null,
+        presetEndDate: null,
       }
     }
   }
